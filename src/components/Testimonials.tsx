@@ -123,7 +123,7 @@ export default function Testimonials() {
           </div>
 
           {/* Right Side: Animated Card */}
-          <div className="relative h-[450px] md:h-[500px] flex items-center justify-center">
+          <div className="relative w-full h-[540px] sm:h-[500px] md:h-[500px] flex items-center justify-center">
             <AnimatePresence mode="wait">
               <motion.div
                 key={activeIndex}
@@ -135,25 +135,28 @@ export default function Testimonials() {
               >
                 <div style={{
                   height: '100%',
+                  width: '100%',
+                  maxWidth: '500px',
+                  margin: '0 auto',
                   background: 'rgba(10, 3, 5, 0.5)',
                   backdropFilter: 'blur(32px)',
                   border: '1px solid rgba(201, 169, 110, 0.15)',
                   borderRadius: '24px',
-                  padding: '40px',
+                  padding: 'clamp(24px, 5vw, 40px)',
                   display: 'flex',
                   flexDirection: 'column',
                   boxShadow: '0 24px 48px rgba(0,0,0,0.4), inset 0 1px 1px rgba(255,255,255,0.05)'
                 }}>
-                  <div className="flex gap-1 mb-8">
+                  <div className="flex gap-1 mb-4 md:mb-8">
                     {[...Array(TESTIMONIALS[activeIndex].rating)].map((_, i) => (
                       <Star key={i} size={16} fill="var(--gold)" stroke="var(--gold)" />
                     ))}
                   </div>
 
                   <div className="flex-1 relative">
-                    <Quote className="absolute -top-6 -left-4 opacity-10" size={64} style={{ color: 'var(--gold)' }} />
+                    <Quote className="absolute -top-4 -left-2 md:-top-6 md:-left-4 opacity-10" size={64} style={{ color: 'var(--gold)' }} />
                     <p style={{
-                      fontSize: '18px',
+                      fontSize: 'clamp(15px, 4vw, 18px)',
                       lineHeight: '1.6',
                       color: '#E8D5B0',
                       fontFamily: 'var(--FB)',
@@ -164,11 +167,15 @@ export default function Testimonials() {
                     </p>
                   </div>
 
-                  <Separator style={{ margin: '32px 0', background: 'rgba(201, 169, 110, 0.1)' }} />
+                  <Separator style={{ margin: 'clamp(20px, 4vw, 32px) 0', background: 'rgba(201, 169, 110, 0.1)' }} />
 
                   <div className="flex items-center gap-4">
                     <Avatar style={{ height: '56px', width: '56px', border: '2px solid rgba(201, 169, 110, 0.2)' }}>
-                      <AvatarImage src={TESTIMONIALS[activeIndex].photo} alt={TESTIMONIALS[activeIndex].author} />
+                      <AvatarImage 
+                        src={TESTIMONIALS[activeIndex].photo} 
+                        alt={TESTIMONIALS[activeIndex].author} 
+                        style={{ objectFit: 'cover' }}
+                      />
                       <AvatarFallback style={{ background: 'var(--crimson)', color: 'white' }}>
                         {TESTIMONIALS[activeIndex].initials}
                       </AvatarFallback>
