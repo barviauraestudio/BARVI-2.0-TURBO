@@ -124,7 +124,7 @@ function App() {
         <SoftAurora
           speed={0.6}
           scale={1.5}
-          brightness={1}
+          brightness={1.2}
           color1="#f7f7f7"
           color2="#ff0000"
           noiseFrequency={2.5}
@@ -138,8 +138,8 @@ function App() {
           mouseInfluence={0.25}
         />
       </div>
-      {/* Dark overlay so text remains readable across all sections */}
-      <div style={{ position: 'fixed', inset: 0, zIndex: -1, background: 'rgba(6,2,4,0.60)', pointerEvents: 'none' }} />
+      {/* Película suavizada para dar mais vida à aurora */}
+      <div style={{ position: 'fixed', inset: 0, zIndex: -1, background: 'rgba(6,2,4,0.30)', pointerEvents: 'none' }} />
       <Cursor />
       <ScrollProgress />
       <MobileMenu open={menuOpen} onClose={closeMenu} />
