@@ -1,6 +1,24 @@
 import { Renderer, Program, Mesh, Triangle } from 'ogl';
 import { useEffect, useRef } from 'react';
+
 import './SoftAurora.css';
+
+interface SoftAuroraProps {
+  speed?: number;
+  scale?: number;
+  brightness?: number;
+  color1?: string;
+  color2?: string;
+  noiseFrequency?: number;
+  noiseAmplitude?: number;
+  bandHeight?: number;
+  bandSpread?: number;
+  octaveDecay?: number;
+  layerOffset?: number;
+  colorSpeed?: number;
+  enableMouseInteraction?: boolean;
+  mouseInfluence?: number;
+}
 
 function hexToVec3(hex: string): [number, number, number] {
   const h = hex.replace('#', '');
@@ -101,12 +119,13 @@ float perlin3D(float amplitude, float frequency, float px, float py, float pz) {
   float lx11 = mix(d011, d111, sx);
 
   float ly0 = mix(lx00, lx10, sy);
-  float ly1 = mix(lx01, lx11, sz);
+  float ly1 = mix(lx01, lx11, sy);
 
   return amplitude * mix(ly0, ly1, sz);
 }
 
-float auroraGlow(float t, vec2 shift, vec3 uResolution, float uNoiseFreq, float uNoiseAmp, float uScale, float uOctaveDecay, float uBandHeight, float uBandSpread) {
+float auroraGlow(float t, vec2 shift) {
+  // Use consistent UV coordinates based on height to maintain aspect ratio
   vec2 uv = gl_FragCoord.xy / uResolution.y;
   uv += shift;
 
@@ -121,11 +140,14 @@ float auroraGlow(float t, vec2 shift, vec3 uResolution, float uNoiseFreq, float 
     freq *= 2.0;
   }
 
+  // Soften the band calculation to avoid sharp horizontal artifacts
   float yBand = uv.y * 10.0 - uBandHeight * 10.0;
-  return 0.3 * max(exp(uBandSpread * (1.0 - 1.1 * abs(noiseVal + yBand))), 0.0);
+  float glow = 1.0 - 1.1 * abs(noiseVal + yBand);
+  return 0.3 * max(exp(uBandSpread * glow), 0.0);
 }
 
 void main() {
+  // Use consistent UV for the gradient as well
   vec2 uv = gl_FragCoord.xy / uResolution.xy;
   float t = uSpeed * 0.4 * uTime;
 
@@ -135,31 +157,14 @@ void main() {
   }
 
   vec3 col = vec3(0.0);
-  col += 0.99 * auroraGlow(t, shift, uResolution, uNoiseFreq, uNoiseAmp, uScale, uOctaveDecay, uBandHeight, uBandSpread) * cosineGradient(uv.x + uTime * uSpeed * 0.2 * uColorSpeed, vec3(0.5), vec3(0.5), vec3(1.0), vec3(0.3, 0.20, 0.20)) * uColor1;
-  col += 0.99 * auroraGlow(t + uLayerOffset, shift, uResolution, uNoiseFreq, uNoiseAmp, uScale, uOctaveDecay, uBandHeight, uBandSpread) * cosineGradient(uv.x + uTime * uSpeed * 0.1 * uColorSpeed, vec3(0.5), vec3(0.5), vec3(2.0, 1.0, 0.0), vec3(0.5, 0.20, 0.25)) * uColor2;
+  col += 0.99 * auroraGlow(t, shift) * cosineGradient(uv.x + uTime * uSpeed * 0.2 * uColorSpeed, vec3(0.5), vec3(0.5), vec3(1.0), vec3(0.3, 0.20, 0.20)) * uColor1;
+  col += 0.99 * auroraGlow(t + uLayerOffset, shift) * cosineGradient(uv.x + uTime * uSpeed * 0.1 * uColorSpeed, vec3(0.5), vec3(0.5), vec3(2.0, 1.0, 0.0), vec3(0.5, 0.20, 0.25)) * uColor2;
 
   col *= uBrightness;
   float alpha = clamp(length(col), 0.0, 1.0);
   gl_FragColor = vec4(col, alpha);
 }
 `;
-
-interface SoftAuroraProps {
-  speed?: number;
-  scale?: number;
-  brightness?: number;
-  color1?: string;
-  color2?: string;
-  noiseFrequency?: number;
-  noiseAmplitude?: number;
-  bandHeight?: number;
-  bandSpread?: number;
-  octaveDecay?: number;
-  layerOffset?: number;
-  colorSpeed?: number;
-  enableMouseInteraction?: boolean;
-  mouseInfluence?: number;
-}
 
 export default function SoftAurora({
   speed = 0.6,
@@ -181,7 +186,6 @@ export default function SoftAurora({
 
   useEffect(() => {
     if (!containerRef.current) return;
-
     const container = containerRef.current;
     const renderer = new Renderer({ alpha: true, premultipliedAlpha: false });
     const gl = renderer.gl;
@@ -204,12 +208,13 @@ export default function SoftAurora({
     }
 
     function resize() {
-      renderer.setSize(container.offsetWidth, container.offsetHeight);
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+      renderer.setSize(w, h);
       if (program) {
         program.uniforms.uResolution.value = [gl.canvas.width, gl.canvas.height, gl.canvas.width / gl.canvas.height];
       }
     }
-
     window.addEventListener('resize', resize);
     resize();
 
@@ -257,6 +262,9 @@ export default function SoftAurora({
         currentMouse[1] += 0.05 * (targetMouse[1] - currentMouse[1]);
         program.uniforms.uMouse.value[0] = currentMouse[0];
         program.uniforms.uMouse.value[1] = currentMouse[1];
+      } else {
+        program.uniforms.uMouse.value[0] = 0.5;
+        program.uniforms.uMouse.value[1] = 0.5;
       }
 
       renderer.render({ scene: mesh });
@@ -270,9 +278,8 @@ export default function SoftAurora({
         gl.canvas.removeEventListener('mousemove', handleMouseMove);
         gl.canvas.removeEventListener('mouseleave', handleMouseLeave);
       }
-      if (container.contains(gl.canvas)) {
-        container.removeChild(gl.canvas);
-      }
+      container.removeChild(gl.canvas);
+      gl.getExtension('WEBGL_lose_context')?.loseContext();
     };
   }, [speed, scale, brightness, color1, color2, noiseFrequency, noiseAmplitude, bandHeight, bandSpread, octaveDecay, layerOffset, colorSpeed, enableMouseInteraction, mouseInfluence]);
 
